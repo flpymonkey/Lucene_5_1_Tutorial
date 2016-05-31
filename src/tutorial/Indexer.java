@@ -16,6 +16,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+// There exists a class in Luceane called document, this is used for indexing and sorting elements of application
+// Broken up into fields for ability to search
+
 public class Indexer {
 
     public static void main(String[] args) throws Exception{
@@ -24,8 +27,10 @@ public class Indexer {
         {
             throw new Exception("Usage Java "+ Indexer.class.getName()+"<index dir> <data dir>");
         }
-        String indexDir = args[0];
-        String dataDir = args[1];
+        
+        // indexDir to get all files of similar directory
+        String indexDir = args[0]; //#1 Create Lucene index in this directory
+        String dataDir = args[1]; //#2 Index *.txt files in this directory 
 
         long start = System.currentTimeMillis();
         Indexer indexer = new Indexer(indexDir);
@@ -41,12 +46,19 @@ public class Indexer {
     public Indexer (String indexDir) throws IOException {
         Directory dir = new SimpleFSDirectory(Paths.get(indexDir));
         //writer = new IndexWriter(dir, new StandardAnalyzer(), true, IndexWriter.MaxFieldLength.UNLIMITED);
+        
+        //StandardAnalyzer class in luceneane -tokens input and allows to remove specific words, tonkeniezer
+        //Done by separate class for stop word removal and stemming
+
         Analyzer analyzer = new StandardAnalyzer(StandardAnalyzer.STOP_WORDS_SET);
         IndexWriterConfig indexWriterConfig = new IndexWriterConfig(analyzer);
-        writer = new IndexWriter(dir, indexWriterConfig);
+        writer = new IndexWriter(dir, indexWriterConfig); //#3 Create Lucene IndexWriter 
+        //LuceneSimilarityModified to specify similarity algorithm to use (cosine for our application)
+        //For indexing set similarity algorithm by default or manually
+
     }
     public void close() throws IOException {
-        writer.close();
+        writer.close(); //#4 Close IndexWriter 
     }
 
     public int index(String dataDir) throws IOException {
@@ -71,20 +83,18 @@ public class Indexer {
             }
 
         }
-        return writer.numDocs();
+        return writer.numDocs(); //#5 Return number of documents indexed 
     }
 
-    protected boolean acceptFile(File f)
+    protected boolean acceptFile(File f) //#6 Index .txt files only 
     {
         return f.getName().endsWith(".txt");
     }
 
     protected Document getDocument(File f) throws IOException {
         Document doc = new Document();
-
-
-        doc.add(new TextField("contents", new FileReader(f)));
-        doc.add(new TextField("filename", f.getCanonicalPath(), Field.Store.YES));
+        doc.add(new TextField("contents", new FileReader(f)));//#7 Index file content 
+        doc.add(new TextField("filename", f.getCanonicalPath(), Field.Store.YES));//#8 Index file path 
         return doc;
     }
 
@@ -93,7 +103,7 @@ public class Indexer {
         Document doc = getDocument(f);
         if ( doc != null )
         {
-            writer.addDocument(doc);
+            writer.addDocument(doc);  //#9 Add document to Lucene index
         }
     }
 }
